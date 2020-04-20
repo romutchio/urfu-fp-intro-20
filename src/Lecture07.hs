@@ -66,16 +66,16 @@ data Expr
   deriving Eq
 
 showExpr :: Expr -> String
-showExpr (Number n) = show n
+showExpr (Number x) = show x
 showExpr (Plus a b) = showFactor a ++ " + " ++ showFactor b
-showExpr (Minus a b) = showFactor a++" - "++showFactor b
-showExpr (Mult e1 e2) = showFactor e1 ++ " * " ++ showFactor e2
+showExpr (Minus a b) = showFactor a ++ " - " ++ showFactor b
+showExpr (Mult a b) = showFactor a ++ " * " ++ showFactor b
 showExpr (UnaryMinus e) = "-" ++ showFactor e
 showExpr (Abs e) = "|" ++ showExpr e ++ "|"
 
 showFactor :: Expr -> String
 showFactor (Number x) = show x 
-showFactor e = "("++ showExpr e ++")"
+showFactor e = "(" ++ showExpr e ++ ")"
 
 instance Show Expr where
   show = showExpr
