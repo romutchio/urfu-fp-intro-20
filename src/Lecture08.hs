@@ -381,6 +381,7 @@ emptySet = Set.intersection evenSet oddSet
   https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html?highlight=ambiguous#extension-AllowAmbiguousTypes
 -}
 
+
 class IntArray a where
   fromList :: [(Int, Int)] -> a    -- создать из списка пар [(index, value)]
   toList :: a -> [(Int, Int)]      -- преобразовать в список пар [(index, value)]
