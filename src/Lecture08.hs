@@ -382,34 +382,38 @@ emptySet = Set.intersection evenSet oddSet
 -}
 
 class IntArray a where
-  replicateN :: Int -> Int -> a
-  update :: a -> Int -> Int -> a
-  (#) :: a -> Int -> Int
+  fromList :: [(Int, Int)] -> a    -- создать из списка пар [(index, value)]
+  toList :: a -> [(Int, Int)]      -- преобразовать в список пар [(index, value)]
+  update :: a -> Int -> Int -> a   -- обновить элемент по индексу
+  (#) :: a -> Int -> Int           -- получить элемент по индексу
 
 instance IntArray [Int] where
-  replicateN n x = replicate n x
+  fromList xs = map (\case (i, x) -> x) xs
+  toList xs = zip [0..] xs
   update xs x i = take i xs ++ [x] ++ drop (i + 1) xs
   (#) xs i = xs !! i
 
 instance IntArray (Map.IntMap Int) where
-  replicateN n x = Map.fromList [(i, x) | i <- [0..n]]
+  fromList xs = Map.fromList xs
+  toList xs = Map.toList xs
   update xs x i = Map.insert i x xs
   (#) xs i = xs Map.! i
 
 instance IntArray (Array Int Int) where
-  replicateN n x = array (0, n) [(i, x) | i <- [0..n]]
+  fromList xs = array (0,n) xs where n = (length xs) - 1
+  toList xs = assocs xs
   update xs x i = xs // [(i, x)]
   (#) xs i = xs ! i
 
 -- Сортирует массив целых неотрицательных чисел по возрастанию
 countingSort :: forall a. IntArray a => [Int] -> [Int]
 countingSort [] = []
-countingSort xs = ys where
-    updateAtFor :: a -> Int -> Int -> a
-    updateAtFor xs x i = update xs (((#) xs i) + x) i
-    setup = foldl (\as -> \i ->  updateAtFor as 1 i) (replicateN (max + 1) 0) xs
-    ys = foldl (\as -> \i -> as ++ (replicate ((#) setup i) i)) [] [0..max]
+countingSort xs = concat [replicate n x | (x,n) <- toList @a ys] where
+    zeros = fromList (zip [0..] (replicate (max + 1) 0))
+    inc xs i = update xs ((#) xs i + 1) i
+    ys = foldl (\a i -> inc a i) zeros xs
     max = maximum xs
+
 
 {-
   Tак можно запустить функцию сортировки с использованием конкретной реализацией массива:
