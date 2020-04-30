@@ -383,22 +383,32 @@ emptySet = Set.intersection evenSet oddSet
 
 class IntArray a where
   replicateN :: Int -> Int -> a
+  update :: a -> Int -> Int -> a
+  (#) :: a -> Int -> Int
 
 instance IntArray [Int] where
   replicateN n x = replicate n x
+  update xs x i = take i xs ++ [x] ++ drop (i + 1) xs
+  (#) xs i = xs !! i
 
 instance IntArray (Map.IntMap Int) where
   replicateN n x = Map.fromList [(i, x) | i <- [0..n]]
+  update xs x i = Map.insert i x xs
+  (#) xs i = xs Map.! i
 
 instance IntArray (Array Int Int) where
   replicateN n x = array (0, n) [(i, x) | i <- [0..n]]
+  update xs x i = xs // [(i, x)]
+  (#) xs i = xs ! i
 
 -- Сортирует массив целых неотрицательных чисел по возрастанию
 countingSort :: forall a. IntArray a => [Int] -> [Int]
 countingSort [] = []
-countingSort xs = concat [replicateN n i | (i,n) <- ys] where
-    ys = assocs (accumArray (+) 0 (min,max) (zip xs [1,1..]))
-    min = minimum xs
+countingSort xs = ys where
+    updateAtFor :: a -> Int -> Int -> a
+    updateAtFor xs x i = update xs (((#) xs i) + x) i
+    setup = foldl (\as -> \i ->  updateAtFor as 1 i) (replicateN (max + 1) 0) xs
+    ys = foldl (\as -> \i -> as ++ (replicate ((#) setup i) i)) [] [0..max]
     max = maximum xs
 
 {-
