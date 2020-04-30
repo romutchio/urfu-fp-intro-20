@@ -381,6 +381,7 @@ emptySet = Set.intersection evenSet oddSet
   https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html?highlight=ambiguous#extension-AllowAmbiguousTypes
 -}
 
+
 class IntArray a where
   replicateN :: Int -> Int -> a
   update :: a -> Int -> Int -> a
