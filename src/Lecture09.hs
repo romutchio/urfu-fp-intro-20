@@ -133,27 +133,19 @@ createTodoList rootFolder = do
                       _ <- createDirectory rootFolder
                       return $ TodoList rootFolder
 
-generateUUID :: IO UUID
-generateUUID = do
-          g <- newStdGen
-          let (u1, _) = random g
-          return $ u1
-
 addTodo :: TodoList -> Title -> Content -> Deadline -> IO Id
 addTodo (TodoList path) title text deadline = do
                           id <- generateUUID
-                          let strId = toString id
-                          let filename = toString id ++ ".txt"
+                          let filename = id ++ ".txt"
                           let fullPath = path ++ "/" ++ filename
-                          let todo = Todo {todoId = Id strId, title=title, content=text, deadline=deadline, isDone=False}
-                          _ <- BS.writeFile fullPath $ encode todo
-                          return $ Id strId
+                          let todoId = Id id
+                          let todo = Todo todoId title text deadline False
+                          BS.writeFile fullPath $ encode todo
+                          return $ todoId
 
 readTodo :: TodoList -> Id -> IO Todo
-readTodo (TodoList path) (Id id) = do
-              files <- getDirectoryContents path
-              let (file:_) = filter (isPrefixOf id) files
-              let fullPath = path ++"/"++ file
+readTodo todoList id = do
+              fullPath <- getTodoFilePathById todoList id 
               todo <- filenameToTodo fullPath
               return $ todo
 
@@ -164,35 +156,23 @@ showTodo todoList id = do
 
 
 removeTodo :: TodoList -> Id -> IO ()
-removeTodo (TodoList path) (Id id) = do
-              files <- listDirectory path
-              let (file:_) = filter (isPrefixOf id) files
-              removeFile $ path ++ "/" ++ file
+removeTodo todoList id = do
+              fullPath <- getTodoFilePathById todoList id 
+              removeFile $ fullPath
 
 editTodo :: TodoList -> Id -> TodoEdit -> IO ()
-editTodo (TodoList path) (Id id) (TodoEdit title content deadline) = do
-              files <- listDirectory path
-              let (file:_) = filter (isPrefixOf id) files
-              let fullPath = path ++"/"++ file
+editTodo todoList id (TodoEdit title content deadline) = do
+              fullPath <- getTodoFilePathById todoList id
               todo <- filenameToTodo fullPath
-              let updated = Todo {todoId = Id id, title=title, content=content, deadline=deadline, isDone=isDone todo}
+              let updated = Todo id title content deadline (isDone todo)
               BS.writeFile fullPath $ encode updated
 
 setTodoAsDone :: TodoList -> Id -> IO ()
-setTodoAsDone (TodoList path) (Id id) = do
-              files <- listDirectory path
-              let (file:_) = filter (isPrefixOf id) files
-              let fullPath = path ++"/"++ file
-              Todo (todoId) (title) (content) (deadline) (_) <- filenameToTodo fullPath
-              let updated = Todo {todoId=todoId, title=title, content=content, deadline=deadline, isDone=True}
+setTodoAsDone todoList id = do
+              fullPath <- getTodoFilePathById todoList id
+              Todo todoId title content deadline _ <- filenameToTodo fullPath
+              let updated = Todo todoId title content deadline True
               BS.writeFile fullPath $ encode updated
-
-filenameToTodo :: FilePath -> IO Todo
-filenameToTodo file = do 
-  content <- BS.readFile file
-  case decode content of
-    Just a -> return $ a
-    Nothing -> error $ "not parsed" ++ file;
 
 -- Todo должны быть упорядочены по возрастанию deadline'а
 readAllTodo :: TodoList -> IO [Todo]
@@ -218,6 +198,27 @@ showUnfinishedTodo :: TodoList -> IO ()
 showUnfinishedTodo todoList = do
             todos <- readUnfinishedTodo todoList
             mapM_ (\todo -> C8.putStrLn $ encode todo) todos
+
+-- Helpers
+
+generateUUID :: IO String
+generateUUID = do
+          g <- newStdGen
+          let (u1, _) = random g
+          return $ toString u1
+
+getTodoFilePathById :: TodoList -> Id -> IO String
+getTodoFilePathById (TodoList path) (Id id)= do
+              files <- listDirectory path
+              let (file:_) = filter (isPrefixOf id) files
+              return $ path ++ "/" ++ file
+
+filenameToTodo :: FilePath -> IO Todo
+filenameToTodo file = do 
+  content <- BS.readFile file
+  case decode content of
+    Just a -> return $ a
+    Nothing -> error $ "not parsed" ++ file;
 
 {-
   Напишите игру для угадывания случайного числа.
