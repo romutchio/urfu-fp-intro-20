@@ -130,7 +130,7 @@ instance FromJSON Todo
 
 createTodoList :: FilePath -> IO TodoList
 createTodoList rootFolder = do
-                      _ <- createDirectory rootFolder
+                      createDirectory rootFolder
                       return $ TodoList rootFolder
 
 addTodo :: TodoList -> Title -> Content -> Deadline -> IO Id
@@ -179,14 +179,13 @@ readAllTodo :: TodoList -> IO [Todo]
 readAllTodo (TodoList path) = do
               files <- listDirectory path
               let fullPaths = map (\file -> path ++ "/" ++ file) files
-
               contents <- mapM (\x -> filenameToTodo x) fullPaths
               return $ sort contents
 
 readUnfinishedTodo :: TodoList -> IO [Todo]
 readUnfinishedTodo todoList = do
             todos <- readAllTodo todoList
-            let unfinished = filter (\todo -> isDone todo == False) todos
+            let unfinished = filter (\todo -> not (isDone todo)) todos
             return $ unfinished
 
 showAllTodo :: TodoList -> IO ()
@@ -218,7 +217,7 @@ filenameToTodo file = do
   content <- BS.readFile file
   case decode content of
     Just a -> return $ a
-    Nothing -> error $ "not parsed" ++ file;
+    Nothing -> error $ "not parsed" ++ file
 
 {-
   Напишите игру для угадывания случайного числа.
