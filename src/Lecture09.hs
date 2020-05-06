@@ -244,20 +244,17 @@ playGuessGame = do
   guessNumber secret
 
 guessNumber :: Integer -> IO ()
-guessNumber secret = go 1 
- where
-  go tries = do
+guessNumber secret =  do
      guess <- readLn
      putStrLn ("Your number: " ++ show guess)
      case compare guess secret of
         LT -> do
           putStrLn "Too small"
-          go (tries + 1)
+          guessNumber secret
         GT -> do 
           putStrLn "Too big"
-          go (tries + 1)
+          guessNumber secret
         EQ -> do 
-          putStrLn "Yep, that's the number!" 
-          go tries
+          putStrLn "Yep, that's the number!"
 
 -- </Задачи для самостоятельного решения>
