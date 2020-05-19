@@ -62,18 +62,45 @@ persons =
 
 -- Поиск персоны по номеру
 findById :: PersonId -> Reader [Person] (Maybe Person)
-findById pId = error "not implemented"
+findById pId = do
+        _persons <- ask
+        return $ find (\p -> id p == pId) _persons
 
 processSingle :: Person -> String
-processSingle p = error "not implemented"
+processSingle (Person _ _ name surname sex _) = case sex of
+                            Male -> "Уважаемый " ++ name ++ " " ++ surname ++ "!" ++ "\n" ++ serviceOfferSingle
+                            Female -> "Уважаемая " ++ name ++ " " ++ surname ++ "!" ++ "\n" ++ serviceOfferSingle
 
 processPair :: Person -> Person -> String
-processPair husband wife = error "not implemented"
+processPair (Person hId _ hn hs _ (Just mwId)) (Person wId _ wn ws _ (Just mhId)) 
+                                      | mwId == wId && mhId == hId =
+                                         "Уважаемые "++ hn ++ " " ++ hs ++ " и " ++ wn ++ " " ++ ws ++ "!" ++ "\n" ++ serviceOfferPlural
+processPair _ _ = error "wrong pair"
 
 processPerson :: PersonId -> Reader [Person] (Maybe String)
-processPerson pId = error "not implemented"
+processPerson pId = do
+          f <- findById pId
+          s <- case f of
+            Just (Person _ _ _ _ _ (Just id)) -> findById id
+            _ -> return $ Nothing
+          return $ case (f,s) of
+            (Just h@(Person _ _ _ _ Male _), Just w@(Person _ _ _ _ Female _)) -> Just (processPair h w)
+            (Just w@(Person _ _ _ _ Female _), Just h@(Person _ _ _ _ Male _)) -> Just (processPair h w)
+            (Just p, _) -> Just (processSingle p)
+            _ -> Nothing
 
 processPersons :: [PersonId] -> [Maybe String]
-processPersons personIds = error "not implemented"
+processPersons personIds = do
+              pId <- personIds
+              return (runReader (processPerson pId) persons)
+
+
+------helpers-------
+
+serviceOfferSingle :: String
+serviceOfferSingle = "Разрешите предложить Вам наши услуги."
+
+serviceOfferPlural :: String
+serviceOfferPlural = "Разрешите предложить вам наши услуги."
 
 -- </Задачи для самостоятельного решения>
