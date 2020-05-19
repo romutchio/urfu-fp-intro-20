@@ -1,6 +1,17 @@
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module Lecture09 where
+
+import GHC.Generics
+import Data.Aeson
+import System.Directory
+import Data.List
+import System.Random
+import qualified Data.ByteString.Lazy as BS
+import qualified Data.ByteString.Lazy.Char8 as C8
+import Data.UUID
+
 
 {-
   09: Монады IO и Random
@@ -74,13 +85,25 @@ module Lecture09 where
 
 newtype TodoList = TodoList FilePath deriving (Eq, Show)
 
-newtype Id = Id String deriving (Eq, Show)
+newtype Id = Id String deriving (Eq, Show, Generic)
 
-newtype Title = Title String deriving (Eq, Show)
+instance ToJSON Id
+instance FromJSON Id
 
-newtype Deadline = Deadline String deriving (Eq, Show)
+newtype Title = Title String deriving (Eq, Show, Generic)
 
-newtype Content = Content String deriving (Eq, Show)
+instance ToJSON Title
+instance FromJSON Title
+
+newtype Deadline = Deadline String deriving (Eq, Show, Generic)
+
+instance ToJSON Deadline
+instance FromJSON Deadline
+
+newtype Content = Content String deriving (Eq, Show, Generic)
+
+instance ToJSON Content
+instance FromJSON Content
 
 -- Тип для чтения Todo
 data Todo = Todo
@@ -89,7 +112,10 @@ data Todo = Todo
   , content :: Content
   , deadline :: Deadline
   , isDone :: Bool
-  } deriving (Eq, Show)
+  } deriving (Eq, Show, Generic)
+
+instance Ord Todo where
+  compare (Todo _ _ _ (Deadline d1) _) (Todo _ _ _ (Deadline d2) _) = compare d1 d2
 
 -- Тип для редактирования Todo
 data TodoEdit = TodoEdit
@@ -98,39 +124,100 @@ data TodoEdit = TodoEdit
   , deadline :: Deadline
   } deriving (Eq, Show)
 
+instance ToJSON Todo where
+  toEncoding = genericToEncoding defaultOptions
+instance FromJSON Todo
+
 createTodoList :: FilePath -> IO TodoList
-createTodoList rootFolder = error "not implemented"
+createTodoList rootFolder = do
+                      createDirectory rootFolder
+                      return $ TodoList rootFolder
 
 addTodo :: TodoList -> Title -> Content -> Deadline -> IO Id
-addTodo todoList title text deadline = error "not implemented"
+addTodo (TodoList path) title text deadline = do
+                          id <- generateUUID
+                          let filename = id ++ ".txt"
+                          let fullPath = path ++ "/" ++ filename
+                          let todoId = Id id
+                          let todo = Todo todoId title text deadline False
+                          BS.writeFile fullPath $ encode todo
+                          return $ todoId
 
 readTodo :: TodoList -> Id -> IO Todo
-readTodo todoList id = error "not implemented"
+readTodo todoList id = do
+              fullPath <- getTodoFilePathById todoList id 
+              todo <- filenameToTodo fullPath
+              return $ todo
 
 showTodo :: TodoList -> Id -> IO ()
-showTodo todoList id = error "not implemented"
+showTodo todoList id = do
+            todo <- readTodo todoList id
+            C8.putStrLn $ encode todo
+
 
 removeTodo :: TodoList -> Id -> IO ()
-removeTodo todoList id = error "not implemented"
+removeTodo todoList id = do
+              fullPath <- getTodoFilePathById todoList id 
+              removeFile $ fullPath
 
 editTodo :: TodoList -> Id -> TodoEdit -> IO ()
-editTodo todoList id update = error "not implemented"
+editTodo todoList id (TodoEdit title content deadline) = do
+              fullPath <- getTodoFilePathById todoList id
+              todo <- filenameToTodo fullPath
+              let updated = Todo id title content deadline (isDone todo)
+              BS.writeFile fullPath $ encode updated
 
 setTodoAsDone :: TodoList -> Id -> IO ()
-setTodoAsDone todoList id = error "not implemented"
+setTodoAsDone todoList id = do
+              fullPath <- getTodoFilePathById todoList id
+              Todo todoId title content deadline _ <- filenameToTodo fullPath
+              let updated = Todo todoId title content deadline True
+              BS.writeFile fullPath $ encode updated
 
 -- Todo должны быть упорядочены по возрастанию deadline'а
 readAllTodo :: TodoList -> IO [Todo]
-readAllTodo todoList = error "not implemented"
+readAllTodo (TodoList path) = do
+              files <- listDirectory path
+              let fullPaths = map (\file -> path ++ "/" ++ file) files
+              contents <- mapM (\x -> filenameToTodo x) fullPaths
+              return $ sort contents
 
 readUnfinishedTodo :: TodoList -> IO [Todo]
-readUnfinishedTodo todoList = error "not implemented"
+readUnfinishedTodo todoList = do
+            todos <- readAllTodo todoList
+            let unfinished = filter (\todo -> not (isDone todo)) todos
+            return $ unfinished
 
 showAllTodo :: TodoList -> IO ()
-showAllTodo todoList = error "not implemented"
+showAllTodo todoList = do
+            todos <- readAllTodo todoList
+            mapM_ (\todo -> C8.putStrLn $ encode todo) todos
 
 showUnfinishedTodo :: TodoList -> IO ()
-showUnfinishedTodo todoList = error "not implemented"
+showUnfinishedTodo todoList = do
+            todos <- readUnfinishedTodo todoList
+            mapM_ (\todo -> C8.putStrLn $ encode todo) todos
+
+-- Helpers
+
+generateUUID :: IO String
+generateUUID = do
+          g <- newStdGen
+          let (u1, _) = random g
+          return $ toString u1
+
+getTodoFilePathById :: TodoList -> Id -> IO String
+getTodoFilePathById (TodoList path) (Id id)= do
+              files <- listDirectory path
+              let (file:_) = filter (isPrefixOf id) files
+              return $ path ++ "/" ++ file
+
+filenameToTodo :: FilePath -> IO Todo
+filenameToTodo file = do 
+  content <- BS.readFile file
+  case decode content of
+    Just a -> return $ a
+    Nothing -> error $ "not parsed" ++ file
 
 {-
   Напишите игру для угадывания случайного числа.
@@ -150,6 +237,24 @@ showUnfinishedTodo todoList = error "not implemented"
 -}
 
 playGuessGame :: IO ()
-playGuessGame = error "not implemented"
+playGuessGame = do
+  putStrLn "Шалом!"
+  putStrLn "Отгадай число от 0 and 100."
+  secret <- randomRIO (0, 100)
+  guessNumber secret
+
+guessNumber :: Integer -> IO ()
+guessNumber secret =  do
+     guess <- readLn
+     putStrLn ("Your number: " ++ show guess)
+     case compare guess secret of
+        LT -> do
+          putStrLn "Too small"
+          guessNumber secret
+        GT -> do 
+          putStrLn "Too big"
+          guessNumber secret
+        EQ -> do 
+          putStrLn "Yep, that's the number!"
 
 -- </Задачи для самостоятельного решения>
