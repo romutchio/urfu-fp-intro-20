@@ -104,7 +104,7 @@ cartesianProduct xs ys = (,) <$> xs <*> ys
 
 -- По аналогии с функцией sqrtList перепишите cartesianProduct с использованием return и (=<<)
 cartesianProductMonad :: [a] -> [b] -> [(a,b)]
-cartesianProductMonad xs ys = xs >>= (\x -> ys >>= (\y -> return (x,y)))
+cartesianProductMonad xs ys = (\x -> (\y -> return (x, y)) =<< ys) =<< xs 
 
 -- А теперь с использованием do notation
 cartesianProductDoNotation :: [a] -> [b] -> [(a,b)]
