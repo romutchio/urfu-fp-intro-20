@@ -1,0 +1,7 @@
+source-repository-package
+  type: git
+  location: https://github.com/nurpax/sqlite-simple.git
+  tag: 49390582cb090fc1ef95988dab9ecc8ebb32251b
+
+packages:
+  bookmovie.cabal

@@ -1,0 +1,63 @@
+cabal-version:       >=1.10
+
+name:                bookmovie
+version:             0.1.0.0
+license-file:        LICENSE
+author:              Evgenii Akentev
+maintainer:          i@ak3n.com
+build-type:          Simple
+
+library
+  exposed-modules:     API
+                     , API.Session
+                     , API.Preliminary
+                     , App
+                     , DB.Booking
+                     , DB.MovieSession
+                     , DB.Seat
+                     , DB.Preliminary
+                     , DB.Internal
+                     , Runner
+                     , Handlers
+                     , Server
+                     , Utils
+  build-depends:       base >= 4.12.0.0
+                     , aeson >= 1.4.7.0
+                     , bytestring
+                     , mtl >= 2.2.0
+                     , exceptions
+                     , servant == 0.17
+                     , servant-server == 0.17
+                     , sqlite-simple == 0.4.18.1
+                     , text
+                     , http-types
+                     , time
+                     , transformers
+                     , warp
+                     , wai
+                     , wai-logger
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  default-extensions:  DataKinds
+                     , TypeOperators
+                     , LambdaCase
+                     , DeriveGeneric
+                     , GeneralizedNewtypeDeriving
+                     , OverloadedStrings
+                     , DerivingStrategies
+                     , StandaloneDeriving
+                     , DerivingVia
+                     , RecordWildCards
+                     , FlexibleContexts
+                     , ConstraintKinds
+                     , ScopedTypeVariables
+  ghc-options:         -Wall
+                       -Werror
+
+
+executable bookmovie
+  hs-source-dirs:      bin
+  main-is:             Main.hs
+  build-depends:       base >=4.13 && <4.14
+                     , bookmovie
+  default-language:    Haskell2010
