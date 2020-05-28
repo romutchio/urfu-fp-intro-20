@@ -35,22 +35,47 @@ emptyStats :: PersonSearchStats
 emptyStats = PersonSearchStats 0 0
 
 newtype PersonsT a = PersonsT
-  { runPersonsT :: NotImplemented }
+  { runPersonsT :: StateT PersonSearchStats (WriterT [String] (Reader [Person])) a }
   deriving
     ( Functor
     , Applicative
     , Monad
---  ...
+-- <Удалить перед выкладкой>
+    , MonadReader [Person]
+    , MonadWriter [String]
+    , MonadState PersonSearchStats
+-- </Удалить перед выкладкой>
     )
+-- { runPersonsT :: NotImplemented }
 
 runPersons :: PersonsT a -> ((a, PersonSearchStats), [String])
-runPersons p = error "not implemented"
+runPersons p = runReader (runWriterT (runStateT (runPersonsT p) emptyStats)) persons
+-- runPersons p = error "not implemented"
 
 findById :: PersonId -> PersonsT (Maybe Person)
-findById pId = error "not implemented"
+findById pId = do
+  tell ["looking for a person:" ++ show pId]
+  persons <- ask
+  return $ find ((== pId) . id) persons
+-- findById pId = error "not implemented"
 
 processPerson :: PersonId -> PersonsT (Maybe String)
-processPerson pId = error "not implemented"
+processPerson pId = findById pId >>= \case
+  Nothing -> pure Nothing
+  Just p -> do
+    stats <- get
+    case marriedBy p of
+      Nothing -> do
+        put $ stats { singlePersonsCount = singlePersonsCount stats + 1 }
+        return $ Just $ processSingle p
+      Just mId -> do
+        mp' <- findById mId
+        case mp' of
+          Just p' -> do
+            put $ stats { marriedPersonsCount = marriedPersonsCount stats + 2 }
+            return $ Just $ processPair p p'
+          Nothing -> error "invalid db"
+-- processPerson pId = error "not implemented"
 
 {-
   Функция должна выводить на экран:
@@ -60,6 +85,14 @@ processPerson pId = error "not implemented"
   Записывать в "persons.log" общий лог всех поисков.
 -}
 processPersons :: [PersonId] -> IO ()
-processPersons personIds = error "not implemented"
+processPersons personIds = do
+  statsWithLogs <- forM personIds $ \personId -> do
+    let ((result, stats), log) = runPersons $ processPerson personId
+    case result of
+      Just r -> putStrLn r
+      Nothing -> pure ()
+    pure (stats, log)
+  pure ()
+-- processPersons personIds = error "not implemented"
 
 -- </Задачи для самостоятельного решения>
