@@ -21,6 +21,7 @@ library
                      , Lecture11
                      , Lecture11.PersonsT
                      , Lecture12
+                     , Lecture13
   default-extensions:  LambdaCase
                      , RecordWildCards
                      , DuplicateRecordFields
@@ -70,6 +71,7 @@ executable spec
                     , Lecture09Spec
                     , Lecture10Spec
                     , Lecture11Spec
+                    , Lecture13Spec
   build-tool-depends: hspec-discover:hspec-discover == 2.*
 
 executable lambda
