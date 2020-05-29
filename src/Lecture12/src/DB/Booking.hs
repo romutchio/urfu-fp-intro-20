@@ -11,7 +11,7 @@ import Servant.API
 import GHC.Generics
 
 import DB.MovieSession
-import DB.Seat
+import DB.Seat (SeatId)
 import DB.Internal
 
 {-
@@ -56,8 +56,15 @@ instance FromJSON Booking
   Если оно существует и прошло меньше 10 минут от создания, то бронирование
   проходит успешно, иначе необходимо вернуть сообщение об ошибке в JSON формате.
 -}
-tryBook
-  :: DBMonad m
-  => BookingId
-  -> m Bool
-tryBook = undefined
+
+getBookings :: DBMonad m => BookingId -> m [Booking]
+getBookings bId = runSQL $ \conn ->
+  query conn "SELECT id, seat_id, movie_session_id, is_preliminary, created_at from bookings where id = ?" bId
+
+deleteBooking :: DBMonad m => BookingId -> m ()
+deleteBooking bId = runSQL $ \conn ->
+  execute conn "DELETE FROM bookings WHERE id = ?" bId
+
+checkoutBooking :: DBMonad m => SeatId -> m ()
+checkoutBooking seatId = runSQL $ \conn ->
+  execute conn "UPDATE seats SET available = false WHERE id = ?" seatId

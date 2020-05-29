@@ -11,6 +11,7 @@ library
   exposed-modules:     API
                      , API.Session
                      , API.Preliminary
+                     , API.Checkout
                      , App
                      , DB.Booking
                      , DB.MovieSession
